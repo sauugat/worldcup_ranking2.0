@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIFA World Cup 2026 — Match Ratings</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Oswald:wght@400;700&display=swap');
+
+  :root {
+    --bg: #111111;
+    --surface: #1a1a1a;
+    --surface2: #222222;
+    --border: #2e2e2e;
+    --text: #e8e8e8;
+    --text-muted: #777;
+    --gold: #FFD700;
+    --green-awesome: #2ecc71;
+    --green-great: #4CAF50;
+    --yellow-good: #f0b429;
+    --orange-regular: #e07b39;
+    --red-bad: #e53935;
+    --purple-garbage: #8e44ad;
+    --cell-empty: #1e1e1e;
+    --radius: 6px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(160deg, #0d0d1a 0%, #1a1a2e 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 20px 0;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .header-top { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+  .trophy-badge {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, #002d7a, #003DA5);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 38px; flex-shrink: 0;
+    border: 1px solid #1a3a7a;
+    box-shadow: 0 4px 20px rgba(0,61,165,0.4);
+  }
+  .header-info { flex: 1; min-width: 0; }
+  .taste-match {
+    display: inline-block;
+    background: linear-gradient(90deg, #003DA5, #4a8fe8);
+    color: #fff; font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 4px; margin-bottom: 6px; letter-spacing: 0.5px;
+  }
+  .rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .star { color: var(--gold); font-size: 16px; }
+  .avg-score { font-family: 'Oswald', sans-serif; font-size: 20px; font-weight: 700; color: var(--gold); }
+  .avg-label { color: var(--text-muted); font-size: 12px; }
+  .confidence-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(30,144,255,0.12); border: 1px solid rgba(30,144,255,0.25);
+    color: #5ba8ff; font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 20px; margin-bottom: 6px;
+  }
+  .event-title { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 700; color: #fff; }
+  .event-subtitle { color: var(--text-muted); font-size: 11px; margin-top: 3px; }
+
+  .action-links { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 0 12px; border-bottom: 1px solid var(--border); }
+  .action-link { font-size: 12px; color: #5ba8ff; cursor: pointer; }
+  .action-link:hover { text-decoration: underline; }
+
+  .controls { display: flex; align-items: center; gap: 8px; padding: 10px 0 8px; flex-wrap: wrap; }
+  .tab-btn {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-size: 11px; font-weight: 500;
+    padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif;
+  }
+  .tab-btn.active { background: #1a2a3a; border-color: #5ba8ff; color: #5ba8ff; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 0 12px; border-bottom: 1px solid var(--border); }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* MAIN */
+  .main { padding: 0 20px 60px; }
+
+  /* STAGE SECTIONS */
+  .stage-section { margin-top: 24px; }
+  .stage-header {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase;
+    color: #444; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .stage-header::after { content: ''; flex: 1; height: 1px; background: #2a2a2a; }
+
+  /* MATCH GRID */
+  .match-grid {
+    display: grid;
+    gap: 3px;
+    grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  }
+  .match-grid.cols-8 { grid-template-columns: repeat(8, 1fr); }
+  .match-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .match-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+  /* CELLS */
+  .cell {
+    border-radius: var(--radius);
+    padding: 6px 4px 5px;
+    cursor: pointer;
+    transition: transform 0.12s;
+    text-align: center;
+    position: relative;
+    border: 1px solid transparent;
+    min-height: 62px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px;
+  }
+  .cell:hover { transform: scale(1.05); z-index: 10; }
+  .cell.empty { background: var(--cell-empty); border-color: #2a2a2a; }
+  .cell.scored { border-color: transparent; }
+  .cell[data-tier="awesome"] { background: var(--green-awesome); }
+  .cell[data-tier="great"]   { background: var(--green-great); }
+  .cell[data-tier="good"]    { background: var(--yellow-good); }
+  .cell[data-tier="regular"] { background: var(--orange-regular); }
+  .cell[data-tier="bad"]     { background: var(--red-bad); }
+  .cell[data-tier="garbage"] { background: var(--purple-garbage); }
+
+  .cell-score {
+    font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 700;
+    color: #111; line-height: 1;
+  }
+  .cell.empty .cell-score { color: #3a3a3a; font-size: 18px; font-weight: 400; }
+  .cell[data-tier="bad"] .cell-score,
+  .cell[data-tier="garbage"] .cell-score { color: #fff; }
+
+  .cell-teams {
+    font-size: 9px; font-weight: 600; color: #111;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%; line-height: 1.2;
+  }
+  .cell.empty .cell-teams { color: #444; }
+  .cell[data-tier="bad"] .cell-teams,
+  .cell[data-tier="garbage"] .cell-teams { color: rgba(255,255,255,0.85); }
+
+  .cell-flags { font-size: 14px; line-height: 1; }
+  .cell.empty .cell-flags { filter: grayscale(1) opacity(0.3); }
+
+  .cell-num {
+    position: absolute; top: 3px; left: 5px;
+    font-size: 8px; color: rgba(0,0,0,0.3); font-weight: 600;
+  }
+  .cell.empty .cell-num { color: #333; }
+  .cell[data-tier="bad"] .cell-num,
+  .cell[data-tier="garbage"] .cell-num { color: rgba(255,255,255,0.3); }
+
+  /* TOOLTIP */
+  .tooltip {
+    display: none; position: absolute;
+    bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: #1e1e1e; border: 1px solid #333; border-radius: 8px;
+    padding: 8px 10px; font-size: 11px; white-space: nowrap; color: #ddd;
+    z-index: 200; pointer-events: none; font-family: 'Inter', sans-serif; text-align: left;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    min-width: 160px;
+  }
+  .tooltip-teams { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
+  .tooltip-date { color: #888; font-size: 10px; }
+  .tooltip-venue { color: #666; font-size: 10px; }
+  .cell:hover .tooltip { display: block; }
+
+  /* STATS */
+  .stats-bar {
+    display: flex; gap: 20px; padding: 16px 0;
+    border-top: 1px solid var(--border); margin-top: 28px; flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat-val { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 700; color: var(--gold); }
+  .stat-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8); z-index: 1000;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #1c1c1c; border: 1px solid #333; border-radius: 14px;
+    padding: 22px; width: 100%; max-width: 360px;
+  }
+  .modal-flags { font-size: 36px; text-align: center; margin-bottom: 6px; }
+  .modal h3 { font-family: 'Oswald', sans-serif; font-size: 17px; text-align: center; margin-bottom: 2px; }
+  .modal-meta { font-size: 11px; color: var(--text-muted); text-align: center; margin-bottom: 4px; }
+  .modal-venue { font-size: 10px; color: #555; text-align: center; margin-bottom: 16px; }
+  .score-display {
+    font-family: 'Oswald', sans-serif; font-size: 52px; font-weight: 700;
+    text-align: center; color: var(--gold); line-height: 1;
+    margin-bottom: 4px;
+  }
+  .score-tier {
+    text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 14px; color: #555;
+  }
+  .score-tier.tier-awesome { color: var(--green-awesome); }
+  .score-tier.tier-great   { color: var(--green-great); }
+  .score-tier.tier-good    { color: var(--yellow-good); }
+  .score-tier.tier-regular { color: var(--orange-regular); }
+  .score-tier.tier-bad     { color: var(--red-bad); }
+  .score-tier.tier-garbage { color: var(--purple-garbage); }
+
+  .rating-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 6px;
+  }
+  .rating-grid button, .half-grid button {
+    padding: 9px 4px; border-radius: 6px;
+    border: 1px solid #2e2e2e; background: #222; color: #ccc;
+    font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all 0.12s;
+  }
+  .half-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 16px; }
+  .half-grid button { font-size: 11px; color: #666; padding: 6px 2px; }
+  .rating-grid button:hover, .half-grid button:hover { background: #2a2a2a; color: #fff; }
+  .rating-grid button.sel, .half-grid button.sel { background: var(--gold); color: #111; border-color: var(--gold); }
+
+  .modal-actions { display: flex; gap: 8px; }
+  .btn-clear {
+    flex: 1; padding: 9px; border-radius: 6px; border: 1px solid #333;
+    background: transparent; color: #666; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif;
+  }
+  .btn-close {
+    flex: 2; padding: 9px; border-radius: 6px; border: none;
+    background: #5ba8ff; color: #111; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: 'Inter', sans-serif;
+  }
+
+  @media (max-width: 480px) {
+    .match-grid.cols-8 { grid-template-columns: repeat(4, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="trophy-badge">🏆</div>
+    <div class="header-info">
+      <span class="taste-match">⚽ Taste Match</span>
+      <div class="rating-row">
+        <span class="star">★</span>
+        <span class="avg-score" id="avgScore">—</span>
+        <span class="avg-label" id="ratingCount">avg. (0 rated)</span>
+      </div>
+      <div class="confidence-badge">♥ Very High Confidence</div>
+      <div class="event-title">2026 FIFA World Cup</div>
+      <div class="event-subtitle">USA · Canada · Mexico &nbsp;·&nbsp; Jun 11 – Jul 19, 2026</div>
+    </div>
+  </div>
+  <div class="action-links">
+    <span class="action-link">✏ Custom chart</span>
+    <span class="action-link">+ Compare</span>
+    <span class="action-link">↓ Save image</span>
+    <span class="action-link">👁 Where to watch</span>
+  </div>
+  <div class="controls">
+    <button class="tab-btn active">📊 Series Graph</button>
+    <button class="tab-btn">⊞ Grid</button>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green-awesome)"></div> Awesome (8.5+)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green-great)"></div> Great (7.5+)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--yellow-good)"></div> Good (6.5+)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--orange-regular)"></div> Regular (5+)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--red-bad)"></div> Bad (3+)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple-garbage)"></div> Garbage</div>
+  </div>
+</div>
+
+<div class="main" id="mainContent"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-flags" id="mFlags"></div>
+    <h3 id="mTitle"></h3>
+    <div class="modal-meta" id="mMeta"></div>
+    <div class="modal-venue" id="mVenue"></div>
+    <div class="score-display" id="mScore">—</div>
+    <div class="score-tier" id="mTier">tap to rate</div>
+    <div class="rating-grid" id="ratingFull"></div>
+    <div class="half-grid" id="ratingHalf"></div>
+    <div class="modal-actions">
+      <button class="btn-clear" onclick="clearRating()">Clear</button>
+      <button class="btn-close" onclick="closeModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── FLAGS ────────────────────────────────────────────────────────────────────
+const FLAGS = {
+  'Mexico': '🇲🇽', 'South Africa': '🇿🇦', 'South Korea': '🇰🇷', 'Czechia': '🇨🇿',
+  'Canada': '🇨🇦', 'Bosnia': '🇧🇦', 'Qatar': '🇶🇦', 'Switzerland': '🇨🇭',
+  'Brazil': '🇧🇷', 'Morocco': '🇲🇦', 'Haiti': '🇭🇹', 'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'USA': '🇺🇸', 'Paraguay': '🇵🇾', 'Australia': '🇦🇺', 'Turkiye': '🇹🇷',
+  'Germany': '🇩🇪', 'Curacao': '🇨🇼', 'Ivory Coast': '🇨🇮', 'Ecuador': '🇪🇨',
+  'Netherlands': '🇳🇱', 'Japan': '🇯🇵', 'Sweden': '🇸🇪', 'Tunisia': '🇹🇳',
+  'Belgium': '🇧🇪', 'Egypt': '🇪🇬', 'Iran': '🇮🇷', 'New Zealand': '🇳🇿',
+  'Spain': '🇪🇸', 'Cape Verde': '🇨🇻', 'Saudi Arabia': '🇸🇦', 'Uruguay': '🇺🇾',
+  'France': '🇫🇷', 'Senegal': '🇸🇳', 'Iraq': '🇮🇶', 'Norway': '🇳🇴',
+  'Argentina': '🇦🇷', 'Algeria': '🇩🇿', 'Austria': '🇦🇹', 'Jordan': '🇯🇴',
+  'Portugal': '🇵🇹', 'DR Congo': '🇨🇩', 'Uzbekistan': '🇺🇿', 'Colombia': '🇨🇴',
+  'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Croatia': '🇭🇷', 'Ghana': '🇬🇭', 'Panama': '🇵🇦',
+  'TBD': '❓'
+};
+
+function flag(team) { return FLAGS[team] || '🏳️'; }
+
+// ─── MATCH DATA ───────────────────────────────────────────────────────────────
+// Format: { id, home, away, date, venue, group }
+const STAGES = [
+  {
+    id: 'gs1', label: 'Group Stage — Round 1', cols: 8,
+    matches: [
+      { id:'A1', home:'Mexico',      away:'South Africa', date:'Jun 11', venue:'Mexico City',      group:'A' },
+      { id:'A2', home:'South Korea', away:'Czechia',      date:'Jun 11', venue:'Guadalajara',      group:'A' },
+      { id:'B1', home:'Canada',      away:'Bosnia',       date:'Jun 12', venue:'Toronto',          group:'B' },
+      { id:'D1', home:'USA',         away:'Paraguay',     date:'Jun 12', venue:'Los Angeles',      group:'D' },
+      { id:'B2', home:'Qatar',       away:'Switzerland',  date:'Jun 13', venue:'San Francisco',    group:'B' },
+      { id:'C1', home:'Brazil',      away:'Morocco',      date:'Jun 13', venue:'New York / NJ',    group:'C' },
+      { id:'C2', home:'Haiti',       away:'Scotland',     date:'Jun 13', venue:'Boston',           group:'C' },
+      { id:'D2', home:'Australia',   away:'Turkiye',      date:'Jun 13', venue:'Vancouver',        group:'D' },
+      { id:'E1', home:'Germany',     away:'Curacao',      date:'Jun 14', venue:'Houston',          group:'E' },
+      { id:'F1', home:'Netherlands', away:'Japan',        date:'Jun 14', venue:'Dallas',           group:'F' },
+      { id:'E2', home:'Ivory Coast', away:'Ecuador',      date:'Jun 14', venue:'Philadelphia',     group:'E' },
+      { id:'F2', home:'Sweden',      away:'Tunisia',      date:'Jun 14', venue:'Monterrey',        group:'F' },
+      { id:'H1', home:'Spain',       away:'Cape Verde',   date:'Jun 15', venue:'Atlanta',          group:'H' },
+      { id:'G1', home:'Belgium',     away:'Egypt',        date:'Jun 15', venue:'Vancouver',        group:'G' },
+      { id:'H2', home:'Saudi Arabia',away:'Uruguay',      date:'Jun 15', venue:'Miami',            group:'H' },
+      { id:'G2', home:'Iran',        away:'New Zealand',  date:'Jun 15', venue:'Los Angeles',      group:'G' },
+    ]
+  },
+  {
+    id: 'gs2', label: 'Group Stage — Round 2', cols: 8,
+    matches: [
+      { id:'I1', home:'France',    away:'Senegal',    date:'Jun 16', venue:'New York / NJ', group:'I' },
+      { id:'I2', home:'Iraq',      away:'Norway',     date:'Jun 16', venue:'Boston',        group:'I' },
+      { id:'J1', home:'Argentina', away:'Algeria',    date:'Jun 16', venue:'Kansas City',   group:'J' },
+      { id:'J2', home:'Austria',   away:'Jordan',     date:'Jun 16', venue:'San Francisco', group:'J' },
+      { id:'K1', home:'Portugal',  away:'DR Congo',   date:'Jun 17', venue:'Houston',       group:'K' },
+      { id:'L1', home:'England',   away:'Croatia',    date:'Jun 17', venue:'Dallas',        group:'L' },
+      { id:'L2', home:'Ghana',     away:'Panama',     date:'Jun 17', venue:'Toronto',       group:'L' },
+      { id:'K2', home:'Uzbekistan',away:'Colombia',   date:'Jun 17', venue:'Mexico City',   group:'K' },
+      { id:'A3', home:'Czechia',   away:'South Africa',date:'Jun 18', venue:'Atlanta',      group:'A' },
+      { id:'B3', home:'Switzerland',away:'Bosnia',    date:'Jun 18', venue:'Los Angeles',   group:'B' },
+      { id:'B4', home:'Canada',    away:'Qatar',      date:'Jun 18', venue:'Vancouver',     group:'B' },
+      { id:'A4', home:'Mexico',    away:'South Korea',date:'Jun 18', venue:'Guadalajara',   group:'A' },
+      { id:'C3', home:'Scotland',  away:'Morocco',    date:'Jun 19', venue:'Boston',        group:'C' },
+      { id:'D3', home:'USA',       away:'Australia',  date:'Jun 19', venue:'Seattle',       group:'D' },
+      { id:'C4', home:'Brazil',    away:'Haiti',      date:'Jun 19', venue:'Philadelphia',  group:'C' },
+      { id:'D4', home:'Turkiye',   away:'Paraguay',   date:'Jun 19', venue:'San Francisco', group:'D' },
+    ]
+  },
+  {
+    id: 'gs3', label: 'Group Stage — Round 3', cols: 8,
+    matches: [
+      { id:'F3', home:'Netherlands',away:'Sweden',     date:'Jun 20', venue:'Houston',       group:'F' },
+      { id:'E3', home:'Germany',    away:'Ivory Coast',date:'Jun 20', venue:'Toronto',       group:'E' },
+      { id:'E4', home:'Ecuador',    away:'Curacao',    date:'Jun 20', venue:'Kansas City',   group:'E' },
+      { id:'F4', home:'Tunisia',    away:'Japan',      date:'Jun 20', venue:'Monterrey',     group:'F' },
+      { id:'H3', home:'Spain',      away:'Saudi Arabia',date:'Jun 21',venue:'Atlanta',       group:'H' },
+      { id:'G3', home:'Belgium',    away:'Iran',       date:'Jun 21', venue:'Los Angeles',   group:'G' },
+      { id:'H4', home:'Uruguay',    away:'Cape Verde', date:'Jun 21', venue:'Miami',         group:'H' },
+      { id:'G4', home:'New Zealand',away:'Egypt',      date:'Jun 21', venue:'Vancouver',     group:'G' },
+      { id:'J3', home:'Argentina',  away:'Austria',    date:'Jun 22', venue:'Dallas',        group:'J' },
+      { id:'I3', home:'France',     away:'Iraq',       date:'Jun 22', venue:'Philadelphia',  group:'I' },
+      { id:'I4', home:'Norway',     away:'Senegal',    date:'Jun 22', venue:'New York / NJ', group:'I' },
+      { id:'J4', home:'Jordan',     away:'Algeria',    date:'Jun 22', venue:'San Francisco', group:'J' },
+      { id:'K3', home:'Portugal',   away:'Uzbekistan', date:'Jun 23', venue:'Houston',       group:'K' },
+      { id:'L3', home:'England',    away:'Ghana',      date:'Jun 23', venue:'Boston',        group:'L' },
+      { id:'L4', home:'Panama',     away:'Croatia',    date:'Jun 23', venue:'Toronto',       group:'L' },
+      { id:'K4', home:'Colombia',   away:'DR Congo',   date:'Jun 23', venue:'Guadalajara',   group:'K' },
+      { id:'B5', home:'Switzerland',away:'Canada',     date:'Jun 24', venue:'Vancouver',     group:'B' },
+      { id:'B6', home:'Bosnia',     away:'Qatar',      date:'Jun 24', venue:'Seattle',       group:'B' },
+      { id:'C5', home:'Scotland',   away:'Brazil',     date:'Jun 24', venue:'Miami',         group:'C' },
+      { id:'C6', home:'Morocco',    away:'Haiti',      date:'Jun 24', venue:'Atlanta',       group:'C' },
+      { id:'A5', home:'Czechia',    away:'Mexico',     date:'Jun 24', venue:'Mexico City',   group:'A' },
+      { id:'A6', home:'South Africa',away:'South Korea',date:'Jun 24',venue:'Monterrey',     group:'A' },
+      { id:'E5', home:'Ecuador',    away:'Germany',    date:'Jun 25', venue:'New York / NJ', group:'E' },
+      { id:'E6', home:'Curacao',    away:'Ivory Coast',date:'Jun 25', venue:'Philadelphia',  group:'E' },
+      { id:'F5', home:'Japan',      away:'Sweden',     date:'Jun 25', venue:'Dallas',        group:'F' },
+      { id:'F6', home:'Tunisia',    away:'Netherlands',date:'Jun 25', venue:'Kansas City',   group:'F' },
+      { id:'D5', home:'Turkiye',    away:'USA',        date:'Jun 25', venue:'Los Angeles',   group:'D' },
+      { id:'D6', home:'Paraguay',   away:'Australia',  date:'Jun 25', venue:'San Francisco', group:'D' },
+      { id:'I5', home:'Norway',     away:'France',     date:'Jun 26', venue:'Boston',        group:'I' },
+      { id:'I6', home:'Senegal',    away:'Iraq',       date:'Jun 26', venue:'Toronto',       group:'I' },
+      { id:'H5', home:'Cape Verde', away:'Saudi Arabia',date:'Jun 26',venue:'Houston',       group:'H' },
+      { id:'H6', home:'Uruguay',    away:'Spain',      date:'Jun 26', venue:'Guadalajara',   group:'H' },
+      { id:'G5', home:'Egypt',      away:'Iran',       date:'Jun 26', venue:'Seattle',       group:'G' },
+      { id:'G6', home:'New Zealand',away:'Belgium',    date:'Jun 26', venue:'Vancouver',     group:'G' },
+      { id:'L5', home:'Panama',     away:'England',    date:'Jun 27', venue:'New York / NJ', group:'L' },
+      { id:'L6', home:'Croatia',    away:'Ghana',      date:'Jun 27', venue:'Philadelphia',  group:'L' },
+      { id:'K5', home:'Colombia',   away:'Portugal',   date:'Jun 27', venue:'Miami',         group:'K' },
+      { id:'K6', home:'DR Congo',   away:'Uzbekistan', date:'Jun 27', venue:'Atlanta',       group:'K' },
+      { id:'J5', home:'Algeria',    away:'Austria',    date:'Jun 27', venue:'Kansas City',   group:'J' },
+      { id:'J6', home:'Jordan',     away:'Argentina',  date:'Jun 27', venue:'Dallas',        group:'J' },
+    ]
+  },
+  {
+    id: 'r32', label: 'Round of 32', cols: 8,
+    matches: [
+      { id:'R32-1',  home:'TBD', away:'TBD', date:'Jun 28', venue:'Los Angeles'   },
+      { id:'R32-2',  home:'TBD', away:'TBD', date:'Jun 29', venue:'Houston'       },
+      { id:'R32-3',  home:'TBD', away:'TBD', date:'Jun 29', venue:'Boston'        },
+      { id:'R32-4',  home:'TBD', away:'TBD', date:'Jun 29', venue:'Monterrey'     },
+      { id:'R32-5',  home:'TBD', away:'TBD', date:'Jun 30', venue:'Dallas'        },
+      { id:'R32-6',  home:'TBD', away:'TBD', date:'Jun 30', venue:'New York / NJ' },
+      { id:'R32-7',  home:'TBD', away:'TBD', date:'Jun 30', venue:'Mexico City'   },
+      { id:'R32-8',  home:'TBD', away:'TBD', date:'Jul 1',  venue:'Atlanta'       },
+      { id:'R32-9',  home:'TBD', away:'TBD', date:'Jul 1',  venue:'Seattle'       },
+      { id:'R32-10', home:'TBD', away:'TBD', date:'Jul 1',  venue:'San Francisco' },
+      { id:'R32-11', home:'TBD', away:'TBD', date:'Jul 2',  venue:'Los Angeles'   },
+      { id:'R32-12', home:'TBD', away:'TBD', date:'Jul 2',  venue:'Toronto'       },
+      { id:'R32-13', home:'TBD', away:'TBD', date:'Jul 2',  venue:'Vancouver'     },
+      { id:'R32-14', home:'TBD', away:'TBD', date:'Jul 3',  venue:'Dallas'        },
+      { id:'R32-15', home:'TBD', away:'TBD', date:'Jul 3',  venue:'Miami'         },
+      { id:'R32-16', home:'TBD', away:'TBD', date:'Jul 3',  venue:'Kansas City'   },
+    ]
+  },
+  {
+    id: 'r16', label: 'Round of 16', cols: 4,
+    matches: [
+      { id:'R16-1', home:'TBD', away:'TBD', date:'Jul 4',  venue:'Houston'       },
+      { id:'R16-2', home:'TBD', away:'TBD', date:'Jul 4',  venue:'Philadelphia'  },
+      { id:'R16-3', home:'TBD', away:'TBD', date:'Jul 5',  venue:'New York / NJ' },
+      { id:'R16-4', home:'TBD', away:'TBD', date:'Jul 5',  venue:'Mexico City'   },
+      { id:'R16-5', home:'TBD', away:'TBD', date:'Jul 6',  venue:'Dallas'        },
+      { id:'R16-6', home:'TBD', away:'TBD', date:'Jul 6',  venue:'Seattle'       },
+      { id:'R16-7', home:'TBD', away:'TBD', date:'Jul 7',  venue:'Atlanta'       },
+      { id:'R16-8', home:'TBD', away:'TBD', date:'Jul 7',  venue:'Vancouver'     },
+    ]
+  },
+  {
+    id: 'qf', label: 'Quarterfinals', cols: 4,
+    matches: [
+      { id:'QF1', home:'TBD', away:'TBD', date:'Jul 9',  venue:'Boston'       },
+      { id:'QF2', home:'TBD', away:'TBD', date:'Jul 10', venue:'Los Angeles'  },
+      { id:'QF3', home:'TBD', away:'TBD', date:'Jul 11', venue:'Miami'        },
+      { id:'QF4', home:'TBD', away:'TBD', date:'Jul 11', venue:'Kansas City'  },
+    ]
+  },
+  {
+    id: 'sf', label: 'Semifinals', cols: 2,
+    matches: [
+      { id:'SF1', home:'TBD', away:'TBD', date:'Jul 14', venue:'Dallas'   },
+      { id:'SF2', home:'TBD', away:'TBD', date:'Jul 15', venue:'Atlanta'  },
+    ]
+  },
+  {
+    id: 'final', label: 'Final & 3rd Place', cols: 2,
+    matches: [
+      { id:'3RD', home:'TBD', away:'TBD', date:'Jul 18', venue:'Miami',         label:'🥉 3rd Place' },
+      { id:'FIN', home:'TBD', away:'TBD', date:'Jul 19', venue:'New York / NJ', label:'🏆 FINAL'     },
+    ]
+  },
+];
+
+// ─── RATINGS ─────────────────────────────────────────────────────────────────
+const ratings = JSON.parse(localStorage.getItem('wc2026v2') || '{}');
+function save() { localStorage.setItem('wc2026v2', JSON.stringify(ratings)); }
+
+function getTier(s) {
+  if (s >= 8.5) return 'awesome';
+  if (s >= 7.5) return 'great';
+  if (s >= 6.5) return 'good';
+  if (s >= 5.0) return 'regular';
+  if (s >= 3.0) return 'bad';
+  return 'garbage';
+}
+const TIER_LABEL = { awesome:'✨ Awesome', great:'⚡ Great', good:'👍 Good', regular:'😐 Regular', bad:'👎 Bad', garbage:'🗑 Garbage' };
+
+// ─── BUILD UI ─────────────────────────────────────────────────────────────────
+function buildAll() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '';
+
+  STAGES.forEach(stage => {
+    const sec = document.createElement('div');
+    sec.className = 'stage-section';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'stage-header';
+    hdr.textContent = stage.label.toUpperCase();
+    sec.appendChild(hdr);
+
+    const grid = document.createElement('div');
+    grid.className = `match-grid cols-${stage.cols}`;
+
+    stage.matches.forEach((m, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+
+      const r = ratings[m.id];
+      const isTbd = m.home === 'TBD';
+
+      if (r !== undefined) {
+        const tier = getTier(r);
+        cell.setAttribute('data-tier', tier);
+        cell.classList.add('scored');
+      } else {
+        cell.classList.add('empty');
+      }
+
+      // Number badge
+      const num = document.createElement('div');
+      num.className = 'cell-num';
+      num.textContent = i + 1;
+      cell.appendChild(num);
+
+      // Flags
+      const flags = document.createElement('div');
+      flags.className = 'cell-flags';
+      flags.textContent = isTbd ? '❓' : `${flag(m.home)}${flag(m.away)}`;
+      cell.appendChild(flags);
+
+      // Score
+      const score = document.createElement('div');
+      score.className = 'cell-score';
+      score.textContent = r !== undefined ? (Number.isInteger(r) ? r + '.0' : r) : '?';
+      cell.appendChild(score);
+
+      // Teams abbrev
+      const teams = document.createElement('div');
+      teams.className = 'cell-teams';
+      if (m.label) {
+        teams.textContent = m.label;
+      } else if (isTbd) {
+        teams.textContent = m.date;
+      } else {
+        const ha = (t) => t.length > 6 ? t.slice(0,6) : t;
+        teams.textContent = `${ha(m.home)} v ${ha(m.away)}`;
+      }
+      cell.appendChild(teams);
+
+      // Tooltip
+      const tip = document.createElement('div');
+      tip.className = 'tooltip';
+      const tipTeams = document.createElement('div');
+      tipTeams.className = 'tooltip-teams';
+      tipTeams.textContent = isTbd
+        ? (m.label || `Match — ${m.date}`)
+        : `${flag(m.home)} ${m.home} vs ${m.away} ${flag(m.away)}`;
+      tip.appendChild(tipTeams);
+      const tipDate = document.createElement('div');
+      tipDate.className = 'tooltip-date';
+      tipDate.textContent = `📅 ${m.date} · Group ${m.group || stage.label.slice(0,3)}`;
+      tip.appendChild(tipDate);
+      const tipVenue = document.createElement('div');
+      tipVenue.className = 'tooltip-venue';
+      tipVenue.textContent = `📍 ${m.venue}`;
+      tip.appendChild(tipVenue);
+      cell.appendChild(tip);
+
+      cell.onclick = () => openModal(m);
+      grid.appendChild(cell);
+    });
+
+    sec.appendChild(grid);
+    main.appendChild(sec);
+  });
+
+  // Stats bar
+  const stats = document.createElement('div');
+  stats.className = 'stats-bar';
+  stats.innerHTML = `
+    <div class="stat"><div class="stat-val" id="stTotal">0</div><div class="stat-lbl">Rated</div></div>
+    <div class="stat"><div class="stat-val" id="stAvg">—</div><div class="stat-lbl">Average</div></div>
+    <div class="stat"><div class="stat-val" id="stBest">—</div><div class="stat-lbl">Best</div></div>
+    <div class="stat"><div class="stat-val" id="stWorst">—</div><div class="stat-lbl">Worst</div></div>
+    <div class="stat"><div class="stat-val" id="stAwesome">0</div><div class="stat-lbl">Awesome</div></div>
+  `;
+  main.appendChild(stats);
+  updateStats();
+}
+
+function updateStats() {
+  const vals = Object.values(ratings);
+  const n = vals.length;
+  document.getElementById('stTotal').textContent = n;
+  if (n === 0) {
+    ['stAvg','stBest','stWorst'].forEach(id => document.getElementById(id).textContent = '—');
+    document.getElementById('stAwesome').textContent = 0;
+    document.getElementById('avgScore').textContent = '—';
+    document.getElementById('ratingCount').textContent = 'avg. (0 rated)';
+    return;
+  }
+  const avg = vals.reduce((a,b)=>a+b,0)/n;
+  document.getElementById('stAvg').textContent = avg.toFixed(1);
+  document.getElementById('stBest').textContent = Math.max(...vals).toFixed(1);
+  document.getElementById('stWorst').textContent = Math.min(...vals).toFixed(1);
+  document.getElementById('stAwesome').textContent = vals.filter(v=>getTier(v)==='awesome').length;
+  document.getElementById('avgScore').textContent = avg.toFixed(1);
+  document.getElementById('ratingCount').textContent = `avg. (${n} rated)`;
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+let currentMatch = null;
+
+function openModal(m) {
+  currentMatch = m;
+  const isTbd = m.home === 'TBD';
+  document.getElementById('mFlags').textContent = isTbd ? '❓' : `${flag(m.home)} ${flag(m.away)}`;
+  document.getElementById('mTitle').textContent = isTbd
+    ? (m.label || 'TBD vs TBD')
+    : `${m.home} vs ${m.away}`;
+  document.getElementById('mMeta').textContent = `${m.date} · ${m.group ? 'Group '+m.group : ''}`;
+  document.getElementById('mVenue').textContent = `📍 ${m.venue}`;
+
+  const r = ratings[m.id];
+  renderScore(r);
+  buildRatingBtns(r);
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function renderScore(r) {
+  const s = document.getElementById('mScore');
+  const t = document.getElementById('mTier');
+  if (r === undefined) {
+    s.textContent = '—'; s.style.color = '#444';
+    t.textContent = 'tap a score to rate'; t.className = 'score-tier';
+  } else {
+    s.textContent = Number.isInteger(r) ? r+'.0' : r;
+    s.style.color = 'var(--gold)';
+    const tier = getTier(r);
+    t.textContent = TIER_LABEL[tier];
+    t.className = `score-tier tier-${tier}`;
+  }
+}
+
+function buildRatingBtns(selected) {
+  const full = document.getElementById('ratingFull');
+  const half = document.getElementById('ratingHalf');
+  full.innerHTML = ''; half.innerHTML = '';
+
+  [1,2,3,4,5,6,7,8,9,10].forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s;
+    if (selected === s) b.classList.add('sel');
+    b.onclick = () => setRating(s);
+    full.appendChild(b);
+  });
+
+  [1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,''].forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s || '';
+    b.disabled = s === '';
+    b.style.opacity = s === '' ? 0 : 1;
+    if (selected === s) b.classList.add('sel');
+    if (s !== '') b.onclick = () => setRating(s);
+    half.appendChild(b);
+  });
+}
+
+function setRating(score) {
+  if (!currentMatch) return;
+  ratings[currentMatch.id] = score;
+  save();
+  renderScore(score);
+  buildRatingBtns(score);
+  buildAll();
+}
+
+function clearRating() {
+  if (!currentMatch) return;
+  delete ratings[currentMatch.id];
+  save();
+  renderScore(undefined);
+  buildRatingBtns(undefined);
+  buildAll();
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  currentMatch = null;
+}
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildAll();
+</script>
+</body>
+</html>
